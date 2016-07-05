@@ -13,6 +13,23 @@ This file is part of cards.
     along with cards.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+// copied from https://github.com/apple/swift/blob/5635545f1e2920b66d863bd0832b210b39621d1b/validation-test/stdlib/Dictionary.swift
+#if os(OSX) || os(iOS) || os(tvOS) || os(watchOS) 
+  import Darwin 
+#else 
+  import Glibc 
+#endif
+
+func uniformRandom(max: Int) -> Int { 
+  #if os(Linux) 
+    return Int(random() % (max + 1)) 
+  #else 
+    return Int(arc4random_uniform(UInt32(max))) 
+  #endif 
+}
+// end copy
+
+/// Standard card ranks.  
 enum Rank : Int {
   case ace = 1
   case two, three, four, five, six, seven, eight, nine, ten
@@ -32,8 +49,11 @@ enum Rank : Int {
       return String(self.rawValue)
     }
   }
+
+  static let allValues = [ace, two, three, four, five, six, seven, eight, nine, ten, jack, queen, king]
 }
 
+/// Standard card suits.
 enum Suit {
   case clubs, diamonds, hearts, spades
 
@@ -49,8 +69,11 @@ enum Suit {
       return "♠️"
     }
   }
+
+  static let allValues = [clubs, diamonds, hearts, spades]
 }
 
+/// Card with a rank and suit.
 class Card {
   var rank : Rank;
   var suit : Suit;
@@ -61,7 +84,47 @@ class Card {
   }
 
   func simpleDescription () -> String {
-    return "\(rank)\(suit)"
+    var sd = ""
+    if (rank != Rank.ten) { sd += " "} // padding to make the cards line up.
+    sd += "\(rank.simpleDescription())\(suit.simpleDescription())"
+    return sd
   }
 }
 
+/// Standard deck of 52 cards
+class Deck {
+  var cards = [Card]()
+
+  init() {
+    for s in Suit.allValues {
+      for r in Rank.allValues {
+        let c = Card(rank: r, suit: s)
+        cards += [c]
+      }
+    }
+  }
+
+  /// shuffles the deck into random (pseudo-random - whatever) order.
+  func sort() {
+    // just run through 1000 iterations and swap the cards.  There are quicker algorithms that I'll leave to the reader.
+    var cnt = 0
+    repeat {
+      let card1 = uniformRandom(52)
+      let card2 = uniformRandom(52)
+      let temp = cards[card1]
+      cards[card1] = cards[card2]
+      cards[card2] = temp
+
+      cnt += 1
+    } while cnt < 1000
+  }
+}
+
+/// Just some testing
+// TODO replace with better card tests.
+// Print all cards in a deck.
+let d = Deck()
+d.sort()
+for c in d.cards {
+  print (c.simpleDescription())
+}
