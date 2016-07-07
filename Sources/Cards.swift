@@ -73,6 +73,37 @@ enum Suit {
   static let allValues = [clubs, diamonds, hearts, spades]
 }
 
+/// Standard card suits.
+enum rankOfHands {
+
+  case highCard, onePair, twoPair, threeOfAKind, straight, flush, fullHouse, fourOfAKind, straightFlush
+
+  func simpleDescription() -> String {
+    switch self {
+    case .highCard:
+      return "high card"
+    case .onePair:
+      return "one pair"
+    case .twoPair:
+      return "two pair"
+    case .threeOfAKind:
+      return "three of a kind"
+    case .straight:
+      return "straight"
+    case .flush:
+      return "flush"
+    case .fullHouse:
+      return "full house"
+    case .fourOfAKind:
+      return "four of a kind"
+    case .straightFlush:
+      return "straight flush"
+    }
+  }
+
+  static let allValues = [highCard, onePair, twoPair, threeOfAKind, straight, flush, fullHouse, fourOfAKind, straightFlush]
+}
+
 /// Card with a rank and suit.
 class Card {
   var rank : Rank;
@@ -91,9 +122,17 @@ class Card {
   }
 }
 
+protocol DeckProtocol {
+  mutating func shuffle()
+  mutating func nextCard() -> Card
+}
+
 /// Standard deck of 52 cards
-class Deck {
+class StandardDeck: DeckProtocol {
+  /// Cards in the deck.
   var cards = [Card]()
+  /// The index for the top card in the deck.
+  var topCard = 0
 
   init() {
     for s in Suit.allValues {
@@ -105,7 +144,8 @@ class Deck {
   }
 
   /// shuffles the deck into random (pseudo-random - whatever) order.
-  func sort() {
+  func shuffle() {
+    topCard = 0 // reset
     // just run through 1000 iterations and swap the cards.  There are quicker algorithms that I'll leave to the reader.
     var cnt = 0
     repeat {
@@ -118,13 +158,70 @@ class Deck {
       cnt += 1
     } while cnt < 1000
   }
+
+  /// Returns the next card in the deck
+  // TODO add error handling code for going past the end of the deck.
+  func nextCard() -> Card {
+    topCard += 1
+    return cards[self.topCard - 1]
+  }
+
+  /// Returns the number of cards remaining in the deck.
+  func cardsRemaining() -> Int {
+    return cards.count - topCard
+  }
 }
 
-/// Just some testing
+/// Hand of cards with no specific number of cards.
+class Hand {
+  /// actual cards in hand
+  var cards: [Card] = []
+  
+  /// returns the number of cards in the hand
+  var nbrCards : Int {
+    get {
+      return cards.count
+    }
+  }
+
+  func getCard (c : Int) -> Card {
+    return cards[c]
+  }
+
+  func addCard(c : Card) {
+    cards.append(c)
+  }
+
+  /// Returns the had as a string.
+  func simpleDescription() -> String {
+    var results = ""
+    var first = true
+    for c in cards {
+      results += (first ? "" : " ") + c.simpleDescription()
+      first = false
+    }
+    return results
+  }
+
+}
+
+// Just some testing
 // TODO replace with better card tests.
 // Print all cards in a deck.
-let d = Deck()
-d.sort()
+let d = StandardDeck()
+d.shuffle()
+print ("shuffeled deck:  ", terminator:"")
 for c in d.cards {
-  print (c.simpleDescription())
+  print (c.simpleDescription(),terminator:" ")
 }
+print ("")
+
+// create some hands and populate, then print.
+var h1 : Hand = Hand()
+var h2 : Hand = Hand()
+for cnt in 1...5 {
+  h1.addCard(d.nextCard())
+  h2.addCard(d.nextCard())
+}
+print ("hand 1:  \(h1.simpleDescription())")
+print ("hand 2:  \(h2.simpleDescription())")
