@@ -13,6 +13,8 @@ This file is part of cards.
     along with cards.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+import Swift
+
 // copied from https://github.com/apple/swift/blob/5635545f1e2920b66d863bd0832b210b39621d1b/validation-test/stdlib/Dictionary.swift
 #if os(OSX) || os(iOS) || os(tvOS) || os(watchOS) 
   import Darwin 
@@ -30,12 +32,13 @@ func uniformRandom(max: Int) -> Int {
 // end copy
 
 /// Standard card ranks.  
-enum Rank : Int {
+enum Rank : Int, CustomStringConvertible {
   case ace = 1
   case two, three, four, five, six, seven, eight, nine, ten
   case jack, queen, king
 
-  func simpleDescription() -> String {
+
+  var description : String {
     switch self {
     case .ace:
       return "A"
@@ -54,10 +57,10 @@ enum Rank : Int {
 }
 
 /// Standard card suits.
-enum Suit {
+enum Suit : CustomStringConvertible {
   case clubs, diamonds, hearts, spades
 
-  func simpleDescription() -> String {
+  var description : String {
     switch self {
     case .clubs:
       return "♣️"
@@ -74,11 +77,11 @@ enum Suit {
 }
 
 /// Standard card suits.
-enum rankOfHands {
+enum RankOfHands : CustomStringConvertible {
 
   case highCard, onePair, twoPair, threeOfAKind, straight, flush, fullHouse, fourOfAKind, straightFlush
 
-  func simpleDescription() -> String {
+  var description : String {
     switch self {
     case .highCard:
       return "high card"
@@ -105,7 +108,7 @@ enum rankOfHands {
 }
 
 /// Card with a rank and suit.
-class Card {
+class Card : CustomStringConvertible{
   var rank : Rank;
   var suit : Suit;
 
@@ -114,10 +117,10 @@ class Card {
     self.suit = suit
   }
 
-  func simpleDescription () -> String {
+  var description : String {
     var sd = ""
     if (rank != Rank.ten) { sd += " "} // padding to make the cards line up.
-    sd += "\(rank.simpleDescription())\(suit.simpleDescription())"
+    sd += "\(rank)\(suit)"
     return sd
   }
 }
@@ -173,7 +176,7 @@ class StandardDeck: DeckProtocol {
 }
 
 /// Hand of cards with no specific number of cards.
-class Hand {
+class Hand : CustomStringConvertible {
   /// actual cards in hand
   var cards: [Card] = []
   
@@ -193,35 +196,131 @@ class Hand {
   }
 
   /// Returns the had as a string.
-  func simpleDescription() -> String {
+  var description : String {
     var results = ""
     var first = true
     for c in cards {
-      results += (first ? "" : " ") + c.simpleDescription()
+      if first { results += "\(c)" }
+      else { results += " \(c)" }
       first = false
     }
     return results
   }
-
 }
 
-// Just some testing
+/// Function to be able to compare ranks.
+// TODO make this generic and add other methods for equality and >.
+func <(a : Rank, b : Rank) -> Bool { return a.rawValue < b.rawValue }
+
+/// Returns true if the given hand has a straight flush.
+func isStraightFlush (hand : Hand) -> Bool {
+  // TODO add code to see if there is a match.
+  // sort cards by suit and then by rank.
+  // look through the cards by suit and see if there are five in a row.
+  var bySuit = [ Suit.clubs    : [Card](), 
+                 Suit.diamonds : [Card](), 
+                 Suit.hearts   : [Card](), 
+                 Suit.spades   : [Card]()
+               ]
+
+  // sort the cards by suit
+  for c in hand.cards {
+    bySuit[c.suit]?.append(c)
+  }
+  // now sort within each suit.
+  for sarr in bySuit {
+    print (sarr)
+//    sarr.sort {
+//      return $0 < $1
+//    }
+  }
+  return false
+}
+
+/// Returns true if the given hand has four of a kind
+func isFourOfAKind (hand : Hand) -> Bool {
+  // TODO add code to see if there is a match.
+  return false
+}
+
+/// Returns true if the given hand has a full house
+func isFullHouse (hand : Hand) -> Bool {
+  // TODO add code to see if there is a match.
+  return false
+}
+
+/// Returns true if the given hand has a straight.
+func isStraight (hand : Hand) -> Bool {
+  // TODO add code to see if there is a match.
+  return false
+}
+
+/// Returns true if the given hand has three of a kind.
+func isThreeOfAKind (hand : Hand) -> Bool {
+  // TODO add code to see if there is a match.
+  return false
+}
+
+/// Returns true if the given hand has two pair.
+func isTwoPair (hand : Hand) -> Bool {
+  // TODO add code to see if there is a match.
+  return false
+}
+
+/// Returns true if the given hand has one pair.
+func isOnePair (hand : Hand) -> Bool {
+  // TODO add code to see if there is a match.
+  return false
+}
+
+/// Protocol for all classes that evaluate the resulting hand.
+protocol HandEvaluationProtocol {
+  func evaluate(hand: Hand) -> RankOfHands
+  // TODO add a property that returns the minimum number of cards expected
+}
+
+/// Determines the highest five card hand in the given hand.  The hand
+/// can have more than five cards, but must have at least five.
+class HighFiveCardEvaluator : HandEvaluationProtocol {
+  // TODO Add error handling to see if there are enough cards in the hand.
+  /// Checks to see what the highest possible hand can be made from the given cards.
+  func evaluate(hand: Hand) -> RankOfHands {
+    if isStraightFlush(hand) { return RankOfHands.straightFlush }
+    if isFourOfAKind(hand)   { return RankOfHands.fourOfAKind }
+    if isStraight(hand)      { return RankOfHands.straight }
+    if isThreeOfAKind(hand)  { return RankOfHands.threeOfAKind }
+    if isTwoPair(hand)       { return RankOfHands.twoPair }
+    if isOnePair(hand)       { return RankOfHands.onePair }
+    return RankOfHands.highCard
+  }
+}
+
+////////////////// Just some testing //////////////////////
+
 // TODO replace with better card tests.
 // Print all cards in a deck.
 let d = StandardDeck()
 d.shuffle()
 print ("shuffeled deck:  ", terminator:"")
 for c in d.cards {
-  print (c.simpleDescription(),terminator:" ")
+  print (c,terminator:" ")
 }
 print ("")
 
 // create some hands and populate, then print.
-var h1 : Hand = Hand()
-var h2 : Hand = Hand()
+var h1 = Hand()
+var h2 = Hand()
 for cnt in 1...5 {
   h1.addCard(d.nextCard())
   h2.addCard(d.nextCard())
 }
-print ("hand 1:  \(h1.simpleDescription())")
-print ("hand 2:  \(h2.simpleDescription())")
+print ("hand 1:  \(h1)")
+print ("hand 2:  \(h2)")
+
+var hsf = Hand()
+hsf.addCard(Card(rank: Rank.two, suit:  Suit.diamonds))
+hsf.addCard(Card(rank: Rank.three, suit:  Suit.diamonds))
+hsf.addCard(Card(rank: Rank.four, suit:  Suit.diamonds))
+hsf.addCard(Card(rank: Rank.five, suit:  Suit.diamonds))
+hsf.addCard(Card(rank: Rank.six, suit:  Suit.diamonds))
+print (isStraightFlush(hsf))
