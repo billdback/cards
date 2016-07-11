@@ -3,7 +3,7 @@ Copyright © 2016 William D. Back
 This file is part of cards.
     cards is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
+    the Free Software Foundation, either version 2 of the License, or
     (at your option) any later version.
     cards is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,7 +15,6 @@ This file is part of cards.
 
 import Swift
 
-// copied from https://github.com/apple/swift/blob/5635545f1e2920b66d863bd0832b210b39621d1b/validation-test/stdlib/Dictionary.swift
 #if os(OSX) || os(iOS) || os(tvOS) || os(watchOS) 
   import Darwin 
 #else 
@@ -210,9 +209,10 @@ class Hand : CustomStringConvertible {
 
 /// Function to be able to compare ranks.
 // TODO make this generic and add other methods for equality and >.
-func <(a : Rank, b : Rank) -> Bool { return a.rawValue < b.rawValue }
+func <(a : Card, b : Card) -> Bool { return a.rank.rawValue < b.rank.rawValue }
 
 /// Returns true if the given hand has a straight flush.
+// TODO figure out how to specify the value of the straight flush, i.e. King high beats seven high.
 func isStraightFlush (hand : Hand) -> Bool {
   // TODO add code to see if there is a match.
   // sort cards by suit and then by rank.
@@ -223,18 +223,41 @@ func isStraightFlush (hand : Hand) -> Bool {
                  Suit.spades   : [Card]()
                ]
 
+  var isSF = false
   // sort the cards by suit
   for c in hand.cards {
     bySuit[c.suit]?.append(c)
   }
   // now sort within each suit.
-  for sarr in bySuit {
-    print (sarr)
-//    sarr.sort {
-//      return $0 < $1
-//    }
+  for (sarr) in bySuit.values {
+    if (sarr.count < 5) { continue } // can't be straigth flush
+    let narr = sarr.sort {
+      return $0 < $1
+    }
+    // print ("after sort: \(narr)")
+    var inarow = 0
+    var prev = 0 // raw value for Rank, start before Ace
+    // TODO add handling for Ace as both low and high.
+    for c in narr {
+      //print ("inarow = \(inarow), prev = \(prev), c.rank.rawValue = \(c.rank.rawValue)")
+      if (inarow == 0) {
+        prev = c.rank.rawValue
+        inarow = 1
+      } 
+      else {
+        if (c.rank.rawValue == (prev + 1)) {
+          inarow += 1
+          prev = c.rank.rawValue
+        }
+        else {
+          inarow = 0
+        }
+      }
+      //print (inarow)
+      if (inarow >= 5) { isSF = true; break }
+    }
   }
-  return false
+  return isSF
 }
 
 /// Returns true if the given hand has four of a kind
@@ -317,10 +340,35 @@ for cnt in 1...5 {
 print ("hand 1:  \(h1)")
 print ("hand 2:  \(h2)")
 
-var hsf = Hand()
-hsf.addCard(Card(rank: Rank.two, suit:  Suit.diamonds))
-hsf.addCard(Card(rank: Rank.three, suit:  Suit.diamonds))
-hsf.addCard(Card(rank: Rank.four, suit:  Suit.diamonds))
-hsf.addCard(Card(rank: Rank.five, suit:  Suit.diamonds))
-hsf.addCard(Card(rank: Rank.six, suit:  Suit.diamonds))
-print (isStraightFlush(hsf))
+// test straight flush
+
+var hsfT = Hand()
+hsfT.addCard(Card(rank: Rank.three, suit:  Suit.diamonds))
+hsfT.addCard(Card(rank: Rank.two, suit:  Suit.diamonds))
+hsfT.addCard(Card(rank: Rank.five, suit:  Suit.diamonds))
+hsfT.addCard(Card(rank: Rank.four, suit:  Suit.diamonds))
+hsfT.addCard(Card(rank: Rank.six, suit:  Suit.diamonds))
+print ("is \(hsfT) a straight flush? ==> \(isStraightFlush(hsfT))")
+
+var hsfF = Hand()
+hsfF.addCard(Card(rank: Rank.three, suit:  Suit.spades))
+hsfF.addCard(Card(rank: Rank.two, suit:  Suit.diamonds))
+hsfF.addCard(Card(rank: Rank.five, suit:  Suit.clubs))
+hsfF.addCard(Card(rank: Rank.four, suit:  Suit.diamonds))
+hsfF.addCard(Card(rank: Rank.six, suit:  Suit.diamonds))
+print ("is \(hsfF) a straight flush? ==> \(isStraightFlush(hsfF))")
+
+var hsfF2 = Hand()
+hsfF2.addCard(Card(rank: Rank.three, suit:  Suit.diamonds))
+hsfF2.addCard(Card(rank: Rank.two, suit:  Suit.diamonds))
+hsfF2.addCard(Card(rank: Rank.five, suit:  Suit.diamonds))
+hsfF2.addCard(Card(rank: Rank.four, suit:  Suit.diamonds))
+hsfF2.addCard(Card(rank: Rank.jack, suit:  Suit.diamonds))
+print ("is \(hsfF2) a straight flush? ==> \(isStraightFlush(hsfF2))")
+
+var hsfF3 = Hand()
+hsfF3.addCard(Card(rank: Rank.three, suit:  Suit.diamonds))
+hsfF3.addCard(Card(rank: Rank.two, suit:  Suit.diamonds))
+print ("is \(hsfF3) a straight flush? ==> \(isStraightFlush(hsfF3))")
+
+// test four of a kind
